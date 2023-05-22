@@ -201,11 +201,11 @@ def run_training(dataset_name_or_id: Union[str, int],
 def run_training_entry():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('-dataset_name_or_id', type=str,default='12',
+    parser.add_argument('dataset_name_or_id', type=str,default='12',
                         help="Dataset name or ID to train with")
-    parser.add_argument('-configuration', type=str, default='3d_fullres',
+    parser.add_argument('configuration', type=str, default='3d_fullres',
                         help="Configuration that should be trained")
-    parser.add_argument('-fold', type=str, default='0',
+    parser.add_argument('fold', type=str, default='0',
                         help='Fold of the 5-fold cross-validation. Should be an int between 0 and 4.')
     parser.add_argument('-tr', type=str, required=False, default='nnUNetTrainercls',
                         help='[OPTIONAL] Use this flag to specify a custom trainer. Default: nnUNetTrainer')

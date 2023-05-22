@@ -172,7 +172,8 @@ class nnUNetTrainercls(nnUNetTrainer):
         self.dataloader_train = self.dataloader_val = None  # see on_train_start
 
         ### initializing stuff for remembering things and such
-        self._best_ema = None
+        #self._best_ema = None
+        self._best_auc = None
 
         ### inference things
         self.inference_allowed_mirroring_axes = None  # this variable is set in
@@ -1028,11 +1029,17 @@ class nnUNetTrainercls(nnUNetTrainer):
             self.save_checkpoint(join(self.output_folder, 'checkpoint_latest.pth'))
 
         # handle 'best' checkpointing. ema_fg_dice is computed by the logger and can be accessed like this
-        if self._best_ema is None or self.logger.my_fantastic_logging['ema_fg_dice'][-1] > self._best_ema:
-            self._best_ema = self.logger.my_fantastic_logging['ema_fg_dice'][-1]
-            self.print_to_log_file(f"Yayy! New best EMA pseudo Dice: {np.round(self._best_ema, decimals=4)}")
+        # if self._best_ema is None or self.logger.my_fantastic_logging['ema_fg_dice'][-1] > self._best_ema:
+        #     self._best_ema = self.logger.my_fantastic_logging['ema_fg_dice'][-1]
+        #     self.print_to_log_file(f"Yayy! New best EMA pseudo Dice: {np.round(self._best_ema, decimals=4)}")
+        #     self.save_checkpoint(join(self.output_folder, 'checkpoint_best.pth'))
+            
+        if self._best_auc is None or self.logger.my_fantastic_logging['auroc'][-1] > self._best_auc:
+            self._best_auc = self.logger.my_fantastic_logging['auroc'][-1]
+            self.print_to_log_file(f"Yayy! New best AUC : {np.round(self._best_auc, decimals=4)}")
+            self.print_to_log_file(f"Dice score : {np.round(self.logger.my_fantastic_logging['ema_fg_dice'][-1], decimals=4)}")
             self.save_checkpoint(join(self.output_folder, 'checkpoint_best.pth'))
-
+            
         if self.local_rank == 0:
             self.logger.plot_progress_png(self.output_folder)
 
