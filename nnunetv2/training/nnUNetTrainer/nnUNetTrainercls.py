@@ -143,7 +143,7 @@ class nnUNetTrainercls(nnUNetTrainer):
         self.oversample_foreground_percent = 0.33
         self.num_iterations_per_epoch = 250
         self.num_val_iterations_per_epoch = 50
-        self.num_epochs = 5#1000
+        self.num_epochs = 1000#1000
         self.current_epoch = 0
 
         ### Dealing with labels/regions
@@ -1060,7 +1060,7 @@ class nnUNetTrainercls(nnUNetTrainer):
                     'optimizer_state': self.optimizer.state_dict(),
                     'grad_scaler_state': self.grad_scaler.state_dict() if self.grad_scaler is not None else None,
                     'logging': self.logger.get_checkpoint(),
-                    '_best_ema': self._best_ema,
+                    '_best_auc': self._best_auc,
                     'current_epoch': self.current_epoch + 1,
                     'init_args': self.my_init_kwargs,
                     'trainer_name': self.__class__.__name__,
