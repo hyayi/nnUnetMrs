@@ -33,7 +33,7 @@ from nnunetv2.utilities.plans_handling.plans_handler import PlansManager, Config
 from nnunetv2.utilities.utils import create_lists_from_splitted_dataset_folder
 
 
-class nnUNetPredictor(object):
+class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 python2와의 호환성 혹은 취향
     def __init__(self,
                  tile_step_size: float = 0.5,
                  use_gaussian: bool = True,
@@ -67,12 +67,12 @@ class nnUNetPredictor(object):
         """
         This is used when making predictions with a trained model
         """
-        if use_folds is None:
+        if use_folds is None: ## 자동으로 가중치를 찾는거 같고
             use_folds = nnUNetPredictor.auto_detect_available_folds(model_training_output_dir, checkpoint_name)
 
-        dataset_json = load_json(join(model_training_output_dir, 'dataset.json'))
-        plans = load_json(join(model_training_output_dir, 'plans.json'))
-        plans_manager = PlansManager(plans)
+        dataset_json = load_json(join(model_training_output_dir, 'dataset.json')) ## 데이터 셋의 특징
+        plans = load_json(join(model_training_output_dir, 'plans.json')) ## plans를 통해 모델을 구성하려는 거 같고
+        plans_manager = PlansManager(plans) ## plans를 해석해주는 친구 같군
 
         if isinstance(use_folds, str):
             use_folds = [use_folds]
@@ -130,7 +130,7 @@ class nnUNetPredictor(object):
             print('compiling network')
             self.network = torch.compile(self.network)
 
-    @staticmethod
+    @staticmethod ## class에서 바로 호출 가능하게 만드는 데코레이터
     def auto_detect_available_folds(model_training_output_dir, checkpoint_name):
         print('use_folds is None, attempting to auto detect available folds')
         fold_folders = subdirs(model_training_output_dir, prefix='fold_', join=False)
@@ -534,7 +534,7 @@ class nnUNetPredictor(object):
 
     def _internal_maybe_mirror_and_predict(self, x: torch.Tensor) -> torch.Tensor:
         mirror_axes = self.allowed_mirroring_axes if self.use_mirroring else None
-        prediction = self.network(x)[0]
+        prediction,cls_prediction = self.network(x)
 
         if mirror_axes is not None:
             # check for invalid numbers in mirror_axes
@@ -542,23 +542,22 @@ class nnUNetPredictor(object):
             assert max(mirror_axes) <= len(x.shape) - 3, 'mirror_axes does not match the dimension of the input!'
 
             num_predictons = 2 ** len(mirror_axes)
-            output = self.network(torch.flip(x, (2,)))[0]
             if 0 in mirror_axes:
-                prediction += torch.flip(output, (2,))
+                prediction += torch.flip(self.network(torch.flip(x, (2,)))[0], (2,))
             if 1 in mirror_axes:
-                prediction += torch.flip(output, (3,))
+                prediction += torch.flip(self.network(torch.flip(x, (3,)))[0], (3,))
             if 2 in mirror_axes:
-                prediction += torch.flip(output, (4,))
+                prediction += torch.flip(self.network(torch.flip(x, (4,)))[0], (4,))
             if 0 in mirror_axes and 1 in mirror_axes:
-                prediction += torch.flip(output, (2, 3))
+                prediction += torch.flip(self.network(torch.flip(x, (2, 3)))[0], (2, 3))
             if 0 in mirror_axes and 2 in mirror_axes:
-                prediction += torch.flip(output, (2, 4))
+                prediction += torch.flip(self.network(torch.flip(x, (2, 4)))[0], (2, 4))
             if 1 in mirror_axes and 2 in mirror_axes:
-                prediction += torch.flip(output, (3, 4))
+                prediction += torch.flip(self.network(torch.flip(x, (3, 4)))[0], (3, 4))
             if 0 in mirror_axes and 1 in mirror_axes and 2 in mirror_axes:
-                prediction += torch.flip(output, (2, 3, 4))
+                prediction += torch.flip(self.network(torch.flip(x, (2, 3, 4)))[0], (2, 3, 4))
             prediction /= num_predictons
-        return prediction
+        return prediction ,cls_prediction
 
     def predict_sliding_window_return_logits(self, input_image: torch.Tensor) \
             -> Union[np.ndarray, torch.Tensor]:
@@ -597,8 +596,12 @@ class nnUNetPredictor(object):
                     predicted_logits = torch.zeros((self.label_manager.num_segmentation_heads, *data.shape[1:]),
                                                    dtype=torch.half,
                                                    device=results_device)
-                    n_predictions = torch.zeros(data.shape[1:], dtype=torch.half,
-                                                device=results_device)
+                    n_predictions = torch.zeros(data.shape[1:], dtype=torch.half,device=results_device)
+                    
+                    cls_predicted_logits = torch.zeros((data.shape[0],2),
+                                                   dtype=torch.half,
+                                                   device=results_device)
+                    cls_n_predictions =  0 
                     if self.use_gaussian:
                         gaussian = compute_gaussian(tuple(self.configuration_manager.patch_size), sigma_scale=1. / 8,
                                                     value_scaling_factor=1000,
@@ -612,6 +615,12 @@ class nnUNetPredictor(object):
                                                    device=results_device)
                     n_predictions = torch.zeros(data.shape[1:], dtype=torch.half,
                                                 device=results_device)
+                    
+                    cls_predicted_logits = torch.zeros((data.shape[0],2),
+                                                   dtype=torch.half,
+                                                   device=results_device)
+                    cls_n_predictions =  0 
+                    
                     if self.use_gaussian:
                         gaussian = compute_gaussian(tuple(self.configuration_manager.patch_size), sigma_scale=1. / 8,
                                                     value_scaling_factor=1000,
@@ -624,14 +633,20 @@ class nnUNetPredictor(object):
                     workon = data[sl][None]
                     workon = workon.to(self.device, non_blocking=False)
 
-                    prediction = self._internal_maybe_mirror_and_predict(workon)[0].to(results_device)
-
+                    prediction, cls_prediction = self._internal_maybe_mirror_and_predict(workon)
+                    prediction = prediction[0].to(results_device)
+                    cls_prediction = cls_prediction.to(results_device)
+                    
                     predicted_logits[sl] += (prediction * gaussian if self.use_gaussian else prediction)
+                    cls_predicted_logits += (cls_prediction * gaussian.mean() if self.use_gaussian else cls_prediction)
                     n_predictions[sl[1:]] += (gaussian if self.use_gaussian else 1)
+                    cls_n_predictions += (gaussian.mean() if self.use_gaussian else 1)
 
                 predicted_logits /= n_predictions
+                cls_predicted_logits /= cls_n_predictions
+                
         empty_cache(self.device)
-        return predicted_logits[tuple([slice(None), *slicer_revert_padding[1:]])]
+        return predicted_logits[tuple([slice(None), *slicer_revert_padding[1:]])] , cls_predicted_logits
 
 
 def predict_entry_point_modelfolder():

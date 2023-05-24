@@ -1141,14 +1141,17 @@ class nnUNetTrainer(object):
                 output_filename_truncated = join(validation_output_folder, k)
 
                 try:
-                    prediction = predictor.predict_sliding_window_return_logits(data)
+                    prediction,cls_prediction = predictor.predict_sliding_window_return_logits(data)
                 except RuntimeError:
                     predictor.perform_everything_on_gpu = False
-                    prediction = predictor.predict_sliding_window_return_logits(data)
+                    prediction,cls_prediction = predictor.predict_sliding_window_return_logits(data)
                     predictor.perform_everything_on_gpu = True
 
                 prediction = prediction.cpu()
-
+                cls_prediction = cls_prediction.cpu()
+                
+                
+                
                 # this needs to go into background processes
                 results.append(
                     segmentation_export_pool.starmap_async(

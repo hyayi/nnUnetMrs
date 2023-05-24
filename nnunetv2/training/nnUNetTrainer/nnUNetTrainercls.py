@@ -8,6 +8,7 @@ from copy import deepcopy
 from datetime import datetime
 from time import time, sleep
 from typing import Union, Tuple, List
+import pandas as pd
 
 import numpy as np
 import torch
@@ -143,7 +144,7 @@ class nnUNetTrainercls(nnUNetTrainer):
         self.oversample_foreground_percent = 0.33
         self.num_iterations_per_epoch = 250
         self.num_val_iterations_per_epoch = 50
-        self.num_epochs = 1000#1000
+        self.num_epochs = 1000 #1000#1000
         self.current_epoch = 0
 
         ### Dealing with labels/regions
@@ -1139,6 +1140,7 @@ class nnUNetTrainercls(nnUNetTrainer):
                 _ = [maybe_mkdir_p(join(self.output_folder_base, 'predicted_next_stage', n)) for n in next_stages]
 
             results = []
+            cls_results = {}
             for k in dataset_val.keys():
                 proceed = not check_workers_busy(segmentation_export_pool, results,
                                                  allowed_num_queued=2 * len(segmentation_export_pool._pool))
@@ -1161,13 +1163,14 @@ class nnUNetTrainercls(nnUNetTrainer):
                 output_filename_truncated = join(validation_output_folder, k)
 
                 try:
-                    prediction = predictor.predict_sliding_window_return_logits(data)
+                    prediction,cls_prediction = predictor.predict_sliding_window_return_logits(data)
                 except RuntimeError:
                     predictor.perform_everything_on_gpu = False
-                    prediction = predictor.predict_sliding_window_return_logits(data)
+                    prediction,cls_prediction = predictor.predict_sliding_window_return_logits(data)
                     predictor.perform_everything_on_gpu = True
 
                 prediction = prediction.cpu()
+                cls_prediction = cls_prediction.cpu()
 
                 # this needs to go into background processes
                 results.append(
@@ -1178,6 +1181,8 @@ class nnUNetTrainercls(nnUNetTrainer):
                         )
                     )
                 )
+                
+                cls_results[output_filename_truncated.split('/')[-1]] = cls_prediction[0].numpy()
                 # for debug purposes
                 # export_prediction(prediction_for_export, properties, self.configuration, self.plans, self.dataset_json,
                 #              output_filename_truncated, save_probabilities)
@@ -1216,6 +1221,7 @@ class nnUNetTrainercls(nnUNetTrainer):
                         ))
 
             _ = [r.get() for r in results]
+            pd.DataFrame(cls_results).T.to_csv(join(validation_output_folder, 'cls_results.csv'), index=True)
 
         if self.is_ddp:
             dist.barrier()
