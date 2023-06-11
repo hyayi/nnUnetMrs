@@ -24,7 +24,8 @@ class nnUNetLogger(object):
             'lrs': list(),
             'epoch_start_timestamps': list(),
             'epoch_end_timestamps': list(),
-            'auroc' : list()
+            'auroc' : list(),
+            'ema_auroc' : list(),
         }
         self.verbose = verbose
         # shut up, this logging is great
@@ -47,6 +48,11 @@ class nnUNetLogger(object):
             self.my_fantastic_logging[key][epoch] = value
 
         # handle the ema_fg_dice special case! It is automatically logged when we add a new mean_fg_dice
+        if key == 'auroc':
+            new_ema_pseudo_dice = self.my_fantastic_logging['ema_auroc'][epoch - 1] * 0.9 + 0.1 * value \
+                if len(self.my_fantastic_logging['ema_auroc']) > 0 else value
+            self.log('ema_auroc', new_ema_pseudo_dice, epoch)
+
         if key == 'mean_fg_dice':
             new_ema_pseudo_dice = self.my_fantastic_logging['ema_fg_dice'][epoch - 1] * 0.9 + 0.1 * value \
                 if len(self.my_fantastic_logging['ema_fg_dice']) > 0 else value
@@ -60,6 +66,7 @@ class nnUNetLogger(object):
         # regular progress.png as we are used to from previous nnU-Net versions
         ax = ax_all[0]
         ax2 = ax.twinx()
+        ax3 = ax.twinx()
         x_values = list(range(epoch + 1))
         ax.plot(x_values, self.my_fantastic_logging['train_losses'][:epoch + 1], color='b', ls='-', label="loss_tr", linewidth=4)
         ax.plot(x_values, self.my_fantastic_logging['val_losses'][:epoch + 1], color='r', ls='-', label="loss_val", linewidth=4)
@@ -67,11 +74,17 @@ class nnUNetLogger(object):
                  linewidth=3)
         ax2.plot(x_values, self.my_fantastic_logging['ema_fg_dice'][:epoch + 1], color='g', ls='-', label="pseudo dice (mov. avg.)",
                  linewidth=4)
+        ax3.plot(x_values, self.my_fantastic_logging['auroc'][:epoch + 1], color='c', ls='dotted', label="auroc",
+                 linewidth=3)
+        ax3.plot(x_values, self.my_fantastic_logging['ema_auroc'][:epoch + 1], color='c', ls='-', label="auroc (mov. avg.)",
+                 linewidth=4)
         ax.set_xlabel("epoch")
         ax.set_ylabel("loss")
         ax2.set_ylabel("pseudo dice")
+        ax3.set_ylabel("auroc")
         ax.legend(loc=(0, 1))
         ax2.legend(loc=(0.2, 1))
+        ax3.legend(loc=(0.4, 1))
 
         # epoch times to see whether the training speed is consistent (inconsistent means there are other jobs
         # clogging up the system)
