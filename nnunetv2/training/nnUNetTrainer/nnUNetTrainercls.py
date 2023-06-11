@@ -1093,6 +1093,7 @@ class nnUNetTrainercls(nnUNetTrainer):
         self.current_epoch = checkpoint['current_epoch']
         self.logger.load_checkpoint(checkpoint['logging'])
         self._best_auc = checkpoint['_best_auc']
+        self._emb_dice = checkpoint['_emb_dice']
         self.inference_allowed_mirroring_axes = checkpoint[
             'inference_allowed_mirroring_axes'] if 'inference_allowed_mirroring_axes' in checkpoint.keys() else self.inference_allowed_mirroring_axes
 
