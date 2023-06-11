@@ -144,7 +144,7 @@ class nnUNetTrainercls(nnUNetTrainer):
         self.oversample_foreground_percent = 0.33
         self.num_iterations_per_epoch = 250
         self.num_val_iterations_per_epoch = 50
-        self.num_epochs = 1000 #1000#1000
+        self.num_epochs = 1 #1000#1000
         self.current_epoch = 0
 
         ### Dealing with labels/regions
@@ -175,6 +175,7 @@ class nnUNetTrainercls(nnUNetTrainer):
         ### initializing stuff for remembering things and such
         #self._best_ema = None
         self._best_auc = None
+        self._emb_dice = None
 
         ### inference things
         self.inference_allowed_mirroring_axes = None  # this variable is set in
@@ -1035,8 +1036,9 @@ class nnUNetTrainercls(nnUNetTrainer):
         #     self.print_to_log_file(f"Yayy! New best EMA pseudo Dice: {np.round(self._best_ema, decimals=4)}")
         #     self.save_checkpoint(join(self.output_folder, 'checkpoint_best.pth'))
             
-        if self._best_auc is None or self.logger.my_fantastic_logging['auroc'][-1] > self._best_auc:
-            self._best_auc = self.logger.my_fantastic_logging['auroc'][-1]
+        if self._best_auc is None or self.logger.my_fantastic_logging['ema_auroc'][-1] > self._best_auc:
+            self._best_auc = self.logger.my_fantastic_logging['ema_auroc'][-1]
+            self._emb_dice = self.logger.my_fantastic_logging['ema_fg_dice'][-1]
             self.print_to_log_file(f"Yayy! New best AUC : {np.round(self._best_auc, decimals=4)}")
             self.print_to_log_file(f"Dice score : {np.round(self.logger.my_fantastic_logging['ema_fg_dice'][-1], decimals=4)}")
             self.save_checkpoint(join(self.output_folder, 'checkpoint_best.pth'))
@@ -1062,6 +1064,7 @@ class nnUNetTrainercls(nnUNetTrainer):
                     'grad_scaler_state': self.grad_scaler.state_dict() if self.grad_scaler is not None else None,
                     'logging': self.logger.get_checkpoint(),
                     '_best_auc': self._best_auc,
+                    '_emb_dice': self._emb_dice,
                     'current_epoch': self.current_epoch + 1,
                     'init_args': self.my_init_kwargs,
                     'trainer_name': self.__class__.__name__,
@@ -1089,7 +1092,7 @@ class nnUNetTrainercls(nnUNetTrainer):
         self.my_init_kwargs = checkpoint['init_args']
         self.current_epoch = checkpoint['current_epoch']
         self.logger.load_checkpoint(checkpoint['logging'])
-        self._best_ema = checkpoint['_best_ema']
+        self._best_auc = checkpoint['_best_auc']
         self.inference_allowed_mirroring_axes = checkpoint[
             'inference_allowed_mirroring_axes'] if 'inference_allowed_mirroring_axes' in checkpoint.keys() else self.inference_allowed_mirroring_axes
 
