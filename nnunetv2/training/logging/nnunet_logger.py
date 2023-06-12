@@ -49,9 +49,9 @@ class nnUNetLogger(object):
 
         # handle the ema_fg_dice special case! It is automatically logged when we add a new mean_fg_dice
         if key == 'auroc':
-            new_ema_pseudo_dice = self.my_fantastic_logging['ema_auroc'][epoch - 1] * 0.9 + 0.1 * value \
+            new_ema_auc = self.my_fantastic_logging['ema_auroc'][epoch - 1] * 0.9 + 0.1 * value \
                 if len(self.my_fantastic_logging['ema_auroc']) > 0 else value
-            self.log('ema_auroc', new_ema_pseudo_dice, epoch)
+            self.log('ema_auroc', new_ema_auc, epoch)
 
         if key == 'mean_fg_dice':
             new_ema_pseudo_dice = self.my_fantastic_logging['ema_fg_dice'][epoch - 1] * 0.9 + 0.1 * value \
@@ -84,7 +84,7 @@ class nnUNetLogger(object):
         ax3.set_ylabel("auroc")
         ax.legend(loc=(0, 1))
         ax2.legend(loc=(0.2, 1))
-        ax3.legend(loc=(0.4, 1))
+        ax3.legend(loc=(0.2, 1))
 
         # epoch times to see whether the training speed is consistent (inconsistent means there are other jobs
         # clogging up the system)
