@@ -562,20 +562,41 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
 
             num_predictons = 2 ** len(mirror_axes)
             if 0 in mirror_axes:
-                prediction += torch.flip(self.network(torch.flip(x, (2,)))[0], (2,))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,)))
+                prediction += torch.flip(f_predicion, (2,))
+                cls_prediction += f_cls_predicion
+
             if 1 in mirror_axes:
-                prediction += torch.flip(self.network(torch.flip(x, (3,)))[0], (3,))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (3,)))
+                prediction += torch.flip(f_predicion, (3,))
+                cls_prediction += f_cls_predicion
+
             if 2 in mirror_axes:
-                prediction += torch.flip(self.network(torch.flip(x, (4,)))[0], (4,))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (4,)))
+                prediction += torch.flip(f_predicion, (4,))
+                cls_prediction += f_cls_predicion
+
             if 0 in mirror_axes and 1 in mirror_axes:
-                prediction += torch.flip(self.network(torch.flip(x, (2, 3)))[0], (2, 3))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,3)))
+                prediction += torch.flip(f_predicion, (2,3))
+                cls_prediction += f_cls_predicion
+
             if 0 in mirror_axes and 2 in mirror_axes:
-                prediction += torch.flip(self.network(torch.flip(x, (2, 4)))[0], (2, 4))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,4)))
+                prediction += torch.flip(f_predicion, (2,4))
+                cls_prediction += f_cls_predicion
             if 1 in mirror_axes and 2 in mirror_axes:
-                prediction += torch.flip(self.network(torch.flip(x, (3, 4)))[0], (3, 4))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (3,4)))
+                prediction += torch.flip(f_predicion, (3,4))
+                cls_prediction += f_cls_predicion
             if 0 in mirror_axes and 1 in mirror_axes and 2 in mirror_axes:
-                prediction += torch.flip(self.network(torch.flip(x, (2, 3, 4)))[0], (2, 3, 4))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,3,4)))
+                prediction += torch.flip(f_predicion, (2,3,4))
+                cls_prediction += f_cls_predicion
+                
             prediction /= num_predictons
+            cls_prediction /= num_predictons
+        
         return prediction ,cls_prediction
 
     def predict_sliding_window_return_logits(self, input_image: torch.Tensor) \
