@@ -90,9 +90,12 @@ def compute_metrics(reference_file: str, prediction_file: str, image_reader_writ
                     labels_or_regions: Union[List[int], List[Union[int, Tuple[int, ...]]]],
                     ignore_label: int = None) -> dict:
     # load images
+    #print(reference_file)
+    
     seg_ref, seg_ref_dict = image_reader_writer.read_seg(reference_file)
     seg_pred, seg_pred_dict = image_reader_writer.read_seg(prediction_file)
     # spacing = seg_ref_dict['spacing']
+    #print(reference_file,seg_ref.shape, seg_pred.shape)
 
     ignore_mask = seg_ref == ignore_label if ignore_label is not None else None
 
@@ -252,13 +255,12 @@ def evaluate_simple_entry_point():
 
 
 if __name__ == '__main__':
-    folder_ref = '/media/fabian/data/nnUNet_raw/Dataset004_Hippocampus/labelsTr'
-    folder_pred = '/home/fabian/results/nnUNet_remake/Dataset004_Hippocampus/nnUNetModule__nnUNetPlans__3d_fullres/fold_0/validation'
-    output_file = '/home/fabian/results/nnUNet_remake/Dataset004_Hippocampus/nnUNetModule__nnUNetPlans__3d_fullres/fold_0/validation/summary.json'
+    folder_ref = "/study/nnUnet_an/nnUNet_raw/Dataset014_BrainMrs/labelsTs2"
+    folder_pred = "/study/nnUnet_an/nnUNet_raw/Dataset014_BrainMrs/imagesTs_predlowres_f2"
+    output_file = '/study/nnUnet_an/nnUNet_raw/Dataset014_BrainMrs/summary_f.json'
     image_reader_writer = SimpleITKIO()
     file_ending = '.nii.gz'
-    regions = labels_to_list_of_regions([1, 2])
+    regions = labels_to_list_of_regions([1])
     ignore_label = None
-    num_processes = 12
-    compute_metrics_on_folder(folder_ref, folder_pred, output_file, image_reader_writer, file_ending, regions, ignore_label,
-                              num_processes)
+    num_processes = 1
+    compute_metrics_on_folder(folder_ref, folder_pred, output_file, image_reader_writer, file_ending, regions, ignore_label,num_processes)

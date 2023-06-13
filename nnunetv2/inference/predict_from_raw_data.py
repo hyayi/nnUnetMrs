@@ -31,7 +31,7 @@ from nnunetv2.utilities.json_export import recursive_fix_for_json_export
 from nnunetv2.utilities.label_handling.label_handling import determine_num_input_channels
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager, ConfigurationManager
 from nnunetv2.utilities.utils import create_lists_from_splitted_dataset_folder
-
+import pandas as pd
 
 class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 python2와의 호환성 혹은 취향
     def __init__(self,
@@ -332,6 +332,7 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
         with multiprocessing.get_context("spawn").Pool(num_processes_segmentation_export) as export_pool:
 
             r = []
+            cls_results = {}
             for preprocessed in data_iterator:
                 data = preprocessed['data']
                 if isinstance(data, str):
@@ -357,7 +358,9 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
                     sleep(0.1)
                     proceed = not check_workers_busy(export_pool, r, allowed_num_queued=2 * len(export_pool._pool))
 
-                prediction = self.predict_logits_from_preprocessed_data(data).cpu()
+                prediction, cls_prediction = self.predict_logits_from_preprocessed_data(data)
+                prediction = prediction.cpu()
+                cls_prediction = cls_prediction.cpu()
 
                 if ofile is not None:
                     # this needs to go into background processes
@@ -371,6 +374,8 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
                               self.dataset_json, ofile, save_probabilities),)
                         )
                     )
+                    cls_results[os.path.basename(ofile)] = cls_prediction[0].numpy()
+                    
                 else:
                     # convert_predicted_logits_to_segmentation_with_correct_shape(prediction, plans_manager,
                     #                                                             configuration_manager, label_manager,
@@ -386,6 +391,8 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
                                  save_probabilities),)
                         )
                     )
+                    cls_results[len(r)] = cls_prediction[0].numpy()
+                    
                 if ofile is not None:
                     print(f'done with {os.path.basename(ofile)}')
                 else:
@@ -394,7 +401,10 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
 
         if isinstance(data_iterator, MultiThreadedAugmenter):
             data_iterator._finish()
-
+        if ofile is not None:
+            pd.DataFrame(cls_results).T.to_csv(join(os.path.dirname(ofile), 'cls_results.csv'), index=True)
+        else :
+            pd.DataFrame(cls_results).T.to_csv(join(nnUNet_results,'cls_results.csv'), index=True)
         # clear lru cache
         compute_gaussian.cache_clear()
         # clear device cache
@@ -452,6 +462,7 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
         original_perform_everything_on_gpu = self.perform_everything_on_gpu
         with torch.no_grad():
             prediction = None
+            cls_prediction = None
             if self.perform_everything_on_gpu:
                 try:
                     for params in self.list_of_parameters:
@@ -462,13 +473,16 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
                         else:
                             self.network._orig_mod.load_state_dict(params)
 
-                        if prediction is None:
-                            prediction = self.predict_sliding_window_return_logits(data)
+                        if prediction is None and cls_prediction is None:
+                            prediction,cls_prediction = self.predict_sliding_window_return_logits(data)
                         else:
-                            prediction += self.predict_sliding_window_return_logits(data)
+                            prediction,cls_prediction = self.predict_sliding_window_return_logits(data)
+                            prediction += prediction
+                            cls_prediction += cls_prediction
 
                     if len(self.list_of_parameters) > 1:
                         prediction /= len(self.list_of_parameters)
+                        cls_prediction /= len(self.list_of_parameters)
 
                 except RuntimeError:
                     print('Prediction with perform_everything_on_gpu=True failed due to insufficient GPU memory. '
@@ -478,7 +492,7 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
                     prediction = None
                     self.perform_everything_on_gpu = False
 
-            if prediction is None:
+            if prediction is None and cls_prediction is None:
                 for params in self.list_of_parameters:
                     # messing with state dict names...
                     if not isinstance(self.network, OptimizedModule):
@@ -486,17 +500,22 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
                     else:
                         self.network._orig_mod.load_state_dict(params)
 
-                    if prediction is None:
-                        prediction = self.predict_sliding_window_return_logits(data)
+                    if prediction is None and cls_prediction is None:
+                        prediction,cls_prediction = self.predict_sliding_window_return_logits(data)
                     else:
-                        prediction += self.predict_sliding_window_return_logits(data)
-                if len(self.list_of_parameters) > 1:
-                    prediction /= len(self.list_of_parameters)
+                        prediction,cls_prediction = self.predict_sliding_window_return_logits(data)
+                        prediction += prediction
+                        cls_prediction += cls_prediction
+                        
+                    if len(self.list_of_parameters) > 1:
+                        prediction /= len(self.list_of_parameters)
+                        cls_prediction /= len(self.list_of_parameters)
 
             print('Prediction done, transferring to CPU if needed')
             prediction = prediction.to('cpu')
+            cls_prediction = cls_prediction.to('cpu')
             self.perform_everything_on_gpu = original_perform_everything_on_gpu
-        return prediction
+        return prediction, cls_prediction
 
     def _internal_get_sliding_window_slicers(self, image_size: Tuple[int, ...]):
         slicers = []
@@ -750,17 +769,17 @@ def predict_entry_point():
     parser.add_argument('-o', type=str, required=True,
                         help='Output folder. If it does not exist it will be created. Predicted segmentations will '
                              'have the same name as their source images.')
-    parser.add_argument('-d', type=str, required=True,
+    parser.add_argument('-d', type=str, required=True, default='12',
                         help='Dataset with which you would like to predict. You can specify either dataset name or id')
     parser.add_argument('-p', type=str, required=False, default='nnUNetPlans',
                         help='Plans identifier. Specify the plans in which the desired configuration is located. '
                              'Default: nnUNetPlans')
-    parser.add_argument('-tr', type=str, required=False, default='nnUNetTrainer',
+    parser.add_argument('-tr', type=str, required=False, default='nnUNetTrainercls',
                         help='What nnU-Net trainer class was used for training? Default: nnUNetTrainer')
     parser.add_argument('-c', type=str, required=True,
                         help='nnU-Net configuration that should be used for prediction. Config must be located '
                              'in the plans specified with -p')
-    parser.add_argument('-f', nargs='+', type=str, required=False, default=(0, 1, 2, 3, 4),
+    parser.add_argument('-f', nargs='+', type=str, required=False, default= '5',#(0, 1, 2, 3, 4),
                         help='Specify the folds of the trained model that should be used for prediction. '
                              'Default: (0, 1, 2, 3, 4)')
     parser.add_argument('-step_size', type=float, required=False, default=0.5,
