@@ -55,10 +55,10 @@ class PlainConvClsUNet(nn.Module):
                                         nonlin_first=nonlin_first)
         self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision,
                                    nonlin_first=nonlin_first)
-        self.headers = nn.Sequential(nn.AdaptiveAvgPool3d((1, 1, 1)), nn.Flatten(), nn.Linear(features_per_stage[-1], cls_num_classes))
+        self.headers = nn.Linear(features_per_stage[-1]*5*7*7, cls_num_classes)
     def forward(self, x):
         skips = self.encoder(x)
-        cls_out = self.headers(skips[-1])
+        cls_out = self.headers(skips[-1].flatten(start_dim=1))
         return self.decoder(skips), cls_out
 
     def compute_conv_feature_map_size(self, input_size):

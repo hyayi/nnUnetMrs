@@ -91,7 +91,7 @@ def compute_metrics(reference_file: str, prediction_file: str, image_reader_writ
                     ignore_label: int = None) -> dict:
     # load images
     #print(reference_file)
-    
+
     seg_ref, seg_ref_dict = image_reader_writer.read_seg(reference_file)
     seg_pred, seg_pred_dict = image_reader_writer.read_seg(prediction_file)
     # spacing = seg_ref_dict['spacing']
@@ -133,6 +133,7 @@ def compute_metrics_on_folder(folder_ref: str, folder_pred: str, output_file: st
     """
     output_file must end with .json; can be None
     """
+
     if output_file is not None:
         assert output_file.endswith('.json'), 'output_file should end with .json'
     files_pred = subfiles(folder_pred, suffix=file_ending, join=False)
@@ -148,8 +149,8 @@ def compute_metrics_on_folder(folder_ref: str, folder_pred: str, output_file: st
         results = pool.starmap(
             compute_metrics,
             list(zip(files_ref, files_pred, [image_reader_writer] * len(files_pred), [regions_or_labels] * len(files_pred),
-                     [ignore_label] * len(files_pred)))
-        )
+                        [ignore_label] * len(files_pred)))
+    )
 
     # mean metric per class
     metric_list = list(results[0]['metrics'][regions_or_labels[0]].keys())
@@ -255,9 +256,9 @@ def evaluate_simple_entry_point():
 
 
 if __name__ == '__main__':
-    folder_ref = "/study/nnUnet_an/nnUNet_raw/Dataset014_BrainMrs/labelsTs2"
-    folder_pred = "/study/nnUnet_an/nnUNet_raw/Dataset014_BrainMrs/imagesTs_predlowres_f2"
-    output_file = '/study/nnUnet_an/nnUNet_raw/Dataset014_BrainMrs/summary_f.json'
+    folder_ref = "/study/nnUnet_an/nnUNet_raw/Dataset015_BrainMrs/labelsTs"
+    folder_pred = "/study/nnUnet_an/nnUNet_raw/Dataset015_BrainMrs/imagesTs_predlowresf"
+    output_file = '/study/nnUnet_an/nnUNet_raw/Dataset015_BrainMrs/summary_f.json'
     image_reader_writer = SimpleITKIO()
     file_ending = '.nii.gz'
     regions = labels_to_list_of_regions([1])
