@@ -55,7 +55,7 @@ class PlainConvClsUNet(nn.Module):
                                         nonlin_first=nonlin_first)
         self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision,
                                    nonlin_first=nonlin_first)
-        self.headers = nn.Linear(features_per_stage[-1]*5*7*7, cls_num_classes)
+        self.headers = nn.Sequential(nn.Linear(features_per_stage[-1]*5*7*7, 39200), nn.ReLU(),nn.Dropout(), nn.Linear(39200, 9800), nn.ReLU(), nn.Linear(9800, 1000), nn.ReLU(), nn.Linear(1000, 100), nn.ReLU(), nn.Linear(100, cls_num_classes))
     def forward(self, x):
         skips = self.encoder(x)
         cls_out = self.headers(skips[-1].flatten(start_dim=1))
