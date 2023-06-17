@@ -62,7 +62,6 @@ class PlainConvClsUNet(nn.Module):
         skips = self.encoder(x)
         clinical_data = self.clinical_data_encoder(clinical)
         img_feature = self.headers(skips[-1])
-        cls_out = self.classfier(img_feature+clinical_data)
         funsion_tensor = torch.bmm(clinical_data.unsqueeze(2),img_feature.unsqueeze(1))
         cls_out = nn.classfier(funsion_tensor.flatten(start_dim=1))
         return self.decoder(skips), cls_out

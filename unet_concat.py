@@ -62,6 +62,7 @@ class PlainConvClsUNet(nn.Module):
         skips = self.encoder(x)
         clinical_data = self.clinical_data_encoder(clinical)
         img_feature = self.headers(skips[-1])
+        print(clinical_data.shape,img_feature.shape)
         cls_out = self.classfier(torch.cat([clinical_data,img_feature],dim=-1))
         return self.decoder(skips), cls_out
 
