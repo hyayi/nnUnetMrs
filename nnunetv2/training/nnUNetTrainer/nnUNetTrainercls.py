@@ -1165,7 +1165,7 @@ class nnUNetTrainercls(nnUNetTrainer):
                     # ignore 'The given NumPy array is not writable' warning
                     warnings.simplefilter("ignore")
                     data = torch.from_numpy(data)
-                    clinical = torch.from_numpy(properties['clinical'])
+                    clinical = torch.from_numpy(properties['clnical_info'])
 
                 output_filename_truncated = join(validation_output_folder, k)
 
