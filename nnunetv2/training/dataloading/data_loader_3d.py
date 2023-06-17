@@ -11,6 +11,7 @@ class nnUNetDataLoader3D(nnUNetDataLoaderBase):
         seg_all = np.zeros(self.seg_shape, dtype=np.int16)
         case_properties = []
         mrs_all = []
+        clinical_all = []
 
         for j, i in enumerate(selected_keys):
             # oversampling foreground will improve stability of model training, especially if many patches are empty
@@ -45,9 +46,10 @@ class nnUNetDataLoader3D(nnUNetDataLoaderBase):
             padding = [(-min(0, bbox_lbs[i]), max(bbox_ubs[i] - shape[i], 0)) for i in range(dim)]
             data_all[j] = np.pad(data, ((0, 0), *padding), 'constant', constant_values=0)
             seg_all[j] = np.pad(seg, ((0, 0), *padding), 'constant', constant_values=-1)
+            clinical_all.append(properties['clinical'])
             mrs_all.append(properties['mrs'])
 
-        return {'data': data_all, 'seg': seg_all, 'properties': case_properties, 'keys': selected_keys,'mrs': torch.tensor(mrs_all)}
+        return {'data': data_all, 'seg': seg_all, 'properties': case_properties, 'keys': selected_keys,'mrs': torch.tensor(mrs_all), 'clinical': torch.tensor(np.stack(clinical_all))}
 
 
 if __name__ == '__main__':

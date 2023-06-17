@@ -860,9 +860,11 @@ class nnUNetTrainercls(nnUNetTrainer):
         data = batch['data']
         target = batch['target']
         label = batch['mrs']
+        clinical = batch['clinical']
 
         data = data.to(self.device, non_blocking=True)
         label = label.to(self.device)
+        clinical = clinical.to(self.device)
         if isinstance(target, list):
             target = [i.to(self.device, non_blocking=True) for i in target]
         else:
@@ -874,7 +876,7 @@ class nnUNetTrainercls(nnUNetTrainer):
         # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
         # So autocast will only be active if we have a cuda device.
         with autocast(self.device.type, enabled=True) if self.device.type == 'cuda' else dummy_context():
-            output,cls_output = self.network(data)
+            output,cls_output = self.network(data,clinical)
             # del data
             cls_l = self.cls_loss(cls_output,label)
             l = self.loss(output, target)
@@ -911,6 +913,7 @@ class nnUNetTrainercls(nnUNetTrainer):
         data = batch['data']
         target = batch['target']
         label = batch['mrs']
+        clinical = batch['clinical']
 
         data = data.to(self.device, non_blocking=True)
         label = label.to(self.device)
@@ -924,7 +927,7 @@ class nnUNetTrainercls(nnUNetTrainer):
         # If the device_type is 'mps' then it will complain that mps is not implemented, even if enabled=False is set. Whyyyyyyy. (this is why we don't make use of enabled=False)
         # So autocast will only be active if we have a cuda device.
         with autocast(self.device.type, enabled=True) if self.device.type == 'cuda' else dummy_context():
-            output,cls_output = self.network(data)
+            output,cls_output = self.network(data,clinical)
             del data
             l = self.loss(output, target)
             cls_l = self.cls_loss(cls_output,label)
@@ -1162,14 +1165,15 @@ class nnUNetTrainercls(nnUNetTrainer):
                     # ignore 'The given NumPy array is not writable' warning
                     warnings.simplefilter("ignore")
                     data = torch.from_numpy(data)
+                    clinical = torch.from_numpy(properties['clinical'])
 
                 output_filename_truncated = join(validation_output_folder, k)
 
                 try:
-                    prediction,cls_prediction = predictor.predict_sliding_window_return_logits(data)
+                    prediction,cls_prediction = predictor.predict_sliding_window_return_logits(data,clinical)
                 except RuntimeError:
                     predictor.perform_everything_on_gpu = False
-                    prediction,cls_prediction = predictor.predict_sliding_window_return_logits(data)
+                    prediction,cls_prediction = predictor.predict_sliding_window_return_logits(data,clinical)
                     predictor.perform_everything_on_gpu = True
 
                 prediction = prediction.cpu()

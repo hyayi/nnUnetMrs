@@ -599,7 +599,7 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
         
         return prediction ,cls_prediction
 
-    def predict_sliding_window_return_logits(self, input_image: torch.Tensor) \
+    def predict_sliding_window_return_logits(self, input_image: torch.Tensor, clinical:torch.Tensor) \
             -> Union[np.ndarray, torch.Tensor]:
         assert isinstance(input_image, torch.Tensor)
         self.network = self.network.to(self.device)

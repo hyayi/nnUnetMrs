@@ -55,10 +55,14 @@ class PlainConvClsUNet(nn.Module):
                                         nonlin_first=nonlin_first)
         self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision,
                                    nonlin_first=nonlin_first)
-        self.headers = nn.Sequential(nn.Linear(features_per_stage[-1]*5*7*7, 20000), nn.ReLU(),nn.Dropout(0.5), nn.Linear(20000, 4092), nn.ReLU(), nn.Linear(4092, 1000), nn.ReLU(), nn.Linear(1000, cls_num_classes))
-    def forward(self, x):
+        self.clinical_data_encoder = nn.Sequential(nn.Linear(29,29), nn.ELU(),nn.Linear(29,29),nn.ELU())
+        self.headers = nn.Sequential(nn.Linear(features_per_stage[-1]*5*7*7, 4092), nn.ELU(),nn.Dropout(0.5), nn.Linear(4092, 1000), nn.ELU(), nn.Linear(1000, 29), nn.ELU())
+        self.classfier = nn.Linear(29, cls_num_classes)
+    def forward(self, x,clinical):
         skips = self.encoder(x)
-        cls_out = self.headers(skips[-1].flatten(start_dim=1))
+        clinical_data = self.clinical_data_encoder(clinical)
+        img_feature = self.headers(skips[-1].flatten(start_dim=1))
+        cls_out = self.classfier(img_feature+clinical_data)
         return self.decoder(skips), cls_out
 
     def compute_conv_feature_map_size(self, input_size):
