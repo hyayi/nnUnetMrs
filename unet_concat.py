@@ -62,8 +62,10 @@ class PlainConvClsUNet(nn.Module):
         skips = self.encoder(x)
         clinical_data = self.clinical_data_encoder(clinical)
         img_feature = self.headers(skips[-1])
-        print(clinical_data.shape,img_feature.shape)
-        cls_out = self.classfier(torch.cat([clinical_data,img_feature],dim=-1))
+        
+        batch_size = img_feature.shape[0]
+        
+        cls_out = self.classfier(torch.cat([clinical_data.view(batch_size,-1),img_feature],dim=-1))
         return self.decoder(skips), cls_out
 
     def compute_conv_feature_map_size(self, input_size):
