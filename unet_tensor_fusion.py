@@ -59,8 +59,9 @@ class PlainConvClsUNet(nn.Module):
         self.headers = nn.Sequential(nn.AdaptiveAvgPool3d((1, 1, 1)), nn.Flatten(), nn.Linear(features_per_stage[-1], 20),nn.ELU())
         self.classfier =  nn.Sequential(nn.Linear(400, 200), nn.ELU(), nn.Linear(200, cls_num_classes))
     def forward(self, x,clinical):
+        batch_size = x.shape[0]
         skips = self.encoder(x)
-        clinical_data = self.clinical_data_encoder(clinical)
+        clinical_data = self.clinical_data_encoder(clinical).veiw(batch_size,-1)
         img_feature = self.headers(skips[-1])
         funsion_tensor = torch.bmm(clinical_data.unsqueeze(2),img_feature.unsqueeze(1))
         cls_out = self.classfier(funsion_tensor.flatten(start_dim=1))
