@@ -48,8 +48,9 @@ class nnUNetDataLoader3D(nnUNetDataLoaderBase):
             seg_all[j] = np.pad(seg, ((0, 0), *padding), 'constant', constant_values=-1)
             clinical_all.append(properties['clnical_info'])
             mrs_all.append(properties['mrs'])
-
-        return {'data': data_all, 'seg': seg_all, 'properties': case_properties, 'keys': selected_keys,'mrs': torch.tensor(mrs_all), 'clinical': torch.tensor(np.stack(clinical_all))}
+        clinical_all = np.stack(clinical_all).astype(np.float32)
+        
+        return {'data': data_all, 'seg': seg_all, 'properties': case_properties, 'keys': selected_keys,'mrs': torch.tensor(mrs_all), 'clinical': torch.tensor(clinical_all)}
 
 
 if __name__ == '__main__':
