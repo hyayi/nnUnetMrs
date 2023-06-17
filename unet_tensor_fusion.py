@@ -61,7 +61,7 @@ class PlainConvClsUNet(nn.Module):
     def forward(self, x,clinical):
         batch_size = x.shape[0]
         skips = self.encoder(x)
-        clinical_data = self.clinical_data_encoder(clinical).veiw(batch_size,-1)
+        clinical_data = self.clinical_data_encoder(clinical).view(batch_size,-1)
         img_feature = self.headers(skips[-1])
         funsion_tensor = torch.bmm(clinical_data.unsqueeze(2),img_feature.unsqueeze(1))
         cls_out = self.classfier(funsion_tensor.flatten(start_dim=1))
