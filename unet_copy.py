@@ -56,7 +56,7 @@ class PlainConvClsUNet(nn.Module):
         self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision,
                                    nonlin_first=nonlin_first)
         self.clinical_data_encoder = nn.Sequential(nn.Linear(29,29), nn.ELU(),nn.Linear(29,29),nn.ELU())
-        self.headers = nn.Sequential(nn.Linear(features_per_stage[-1]*5*7*7, 4092), nn.ELU(),nn.Dropout(0.5), nn.Linear(4092, 1000), nn.ELU(), nn.Linear(1000, 29), nn.ELU())
+        self.headers = nn.Sequential(nn.AdaptiveAvgPool3d((1, 1, 1)), nn.Flatten(), nn.Linear(features_per_stage[-1], 29),nn.ELU())
         self.classfier = nn.Linear(29, cls_num_classes)
     def forward(self, x,clinical):
         skips = self.encoder(x)

@@ -551,9 +551,9 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
                                                   zip((sx, sy, sz), self.configuration_manager.patch_size)]]))
         return slicers
 
-    def _internal_maybe_mirror_and_predict(self, x: torch.Tensor) -> torch.Tensor:
+    def _internal_maybe_mirror_and_predict(self, x: torch.Tensor,clinical : torch.Tensor) -> torch.Tensor:
         mirror_axes = self.allowed_mirroring_axes if self.use_mirroring else None
-        prediction,cls_prediction = self.network(x)
+        prediction,cls_prediction = self.network(x,clinical)
 
         if mirror_axes is not None:
             # check for invalid numbers in mirror_axes
@@ -562,35 +562,35 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
 
             num_predictons = 2 ** len(mirror_axes)
             if 0 in mirror_axes:
-                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,)))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,)),clinical)
                 prediction += torch.flip(f_predicion, (2,))
                 cls_prediction += f_cls_predicion
 
             if 1 in mirror_axes:
-                f_predicion,f_cls_predicion = self.network(torch.flip(x, (3,)))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (3,)),clinical)
                 prediction += torch.flip(f_predicion, (3,))
                 cls_prediction += f_cls_predicion
 
             if 2 in mirror_axes:
-                f_predicion,f_cls_predicion = self.network(torch.flip(x, (4,)))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (4,)),clinical)
                 prediction += torch.flip(f_predicion, (4,))
                 cls_prediction += f_cls_predicion
 
             if 0 in mirror_axes and 1 in mirror_axes:
-                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,3)))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,3)),clinical)
                 prediction += torch.flip(f_predicion, (2,3))
                 cls_prediction += f_cls_predicion
 
             if 0 in mirror_axes and 2 in mirror_axes:
-                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,4)))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,4)),clinical)
                 prediction += torch.flip(f_predicion, (2,4))
                 cls_prediction += f_cls_predicion
             if 1 in mirror_axes and 2 in mirror_axes:
-                f_predicion,f_cls_predicion = self.network(torch.flip(x, (3,4)))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (3,4)),clinical)
                 prediction += torch.flip(f_predicion, (3,4))
                 cls_prediction += f_cls_predicion
             if 0 in mirror_axes and 1 in mirror_axes and 2 in mirror_axes:
-                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,3,4)))
+                f_predicion,f_cls_predicion = self.network(torch.flip(x, (2,3,4)),clinical)
                 prediction += torch.flip(f_predicion, (2,3,4))
                 cls_prediction += f_cls_predicion
                 
@@ -672,8 +672,9 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
                 for sl in tqdm(slicers, disable=not self.allow_tqdm):
                     workon = data[sl][None]
                     workon = workon.to(self.device, non_blocking=False)
+                    clinical = clinical.to(self.device, non_blocking=False)
 
-                    prediction, cls_prediction = self._internal_maybe_mirror_and_predict(workon)
+                    prediction, cls_prediction = self._internal_maybe_mirror_and_predict(workon, clinical)
                     prediction = prediction[0].to(results_device)
                     cls_prediction = cls_prediction.to(results_device)
                     
