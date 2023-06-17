@@ -201,9 +201,9 @@ def run_training(dataset_name_or_id: Union[str, int],
 def run_training_entry():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('dataset_name_or_id', type=str,default='12',
+    parser.add_argument('dataset_name_or_id', type=str, default='17',
                         help="Dataset name or ID to train with")
-    parser.add_argument('configuration', type=str, default='3d_fullres',
+    parser.add_argument('configuration', type=str,  default='3d_fullres',
                         help="Configuration that should be trained")
     parser.add_argument('fold', type=str, default='0',
                         help='Fold of the 5-fold cross-validation. Should be an int between 0 and 4.')
@@ -220,7 +220,7 @@ def run_training_entry():
                         help="[OPTIONAL] If you set this flag the training cases will not be decompressed. Reading compressed "
                              "data is much more CPU and (potentially) RAM intensive and should only be used if you "
                              "know what you are doing")
-    parser.add_argument('--npz', action='store_true', required=False,
+    parser.add_argument('--npz', action='store_true', required=False,default=False,
                         help='[OPTIONAL] Save softmax predictions from final validation as npz files (in addition to predicted '
                              'segmentations). Needed for finding the best ensemble.')
     parser.add_argument('--c', action='store_true', required=False,

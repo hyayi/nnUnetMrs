@@ -11,7 +11,6 @@ from dynamic_network_architectures.building_blocks.plain_conv_encoder import Pla
 from dynamic_network_architectures.building_blocks.unet_decoder import UNetDecoder
 from dynamic_network_architectures.building_blocks.helper import convert_conv_op_to_dim
 
-
 class PlainConvClsUNet(nn.Module):
     def __init__(self,
                  input_channels: int,
@@ -58,7 +57,8 @@ class PlainConvClsUNet(nn.Module):
         self.clinical_data_encoder = nn.Sequential(nn.Linear(28,28), nn.ELU(),nn.Linear(28,20),nn.ELU())
         self.headers = nn.Sequential(nn.AdaptiveAvgPool3d((1, 1, 1)), nn.Flatten(), nn.Linear(features_per_stage[-1], 20),nn.ELU())
         self.classfier = nn.Linear(20, cls_num_classes)
-    def forward(self, x,clinical):
+        
+    def forward(self, x, clinical):
         skips = self.encoder(x)
         clinical_data = self.clinical_data_encoder(clinical)
         img_feature = self.headers(skips[-1])
@@ -70,6 +70,7 @@ class PlainConvClsUNet(nn.Module):
                                                             "batch channel. Do not give input_size=(b, c, x, y(, z)). " \
                                                             "Give input_size=(x, y(, z))!"
         return self.encoder.compute_conv_feature_map_size(input_size) + self.decoder.compute_conv_feature_map_size(input_size)
+    
     
 class PlainConvUNet(nn.Module):
     def __init__(self,

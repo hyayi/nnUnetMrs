@@ -865,6 +865,7 @@ class nnUNetTrainercls(nnUNetTrainer):
         data = data.to(self.device, non_blocking=True)
         label = label.to(self.device)
         clinical = clinical.to(self.device)
+        
         if isinstance(target, list):
             target = [i.to(self.device, non_blocking=True) for i in target]
         else:
