@@ -1097,7 +1097,11 @@ class nnUNetTrainercls(nnUNetTrainer):
         self.my_init_kwargs = checkpoint['init_args']
         self.current_epoch = checkpoint['current_epoch']
         self.logger.load_checkpoint(checkpoint['logging'])
+<<<<<<< Updated upstream
         self._best_auc = checkpoint['_best_auc']
+=======
+        #self._best_ema = checkpoint['_best_ema']
+>>>>>>> Stashed changes
         self.inference_allowed_mirroring_axes = checkpoint[
             'inference_allowed_mirroring_axes'] if 'inference_allowed_mirroring_axes' in checkpoint.keys() else self.inference_allowed_mirroring_axes
 
