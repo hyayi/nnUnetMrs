@@ -507,9 +507,9 @@ class nnUNetPredictor(object): ## object는 상속관계와 상관이 없는 pyt
                         prediction += prediction
                         cls_prediction += cls_prediction
                         
-                    if len(self.list_of_parameters) > 1:
-                        prediction /= len(self.list_of_parameters)
-                        cls_prediction /= len(self.list_of_parameters)
+                if len(self.list_of_parameters) > 1:
+                    prediction /= len(self.list_of_parameters)
+                    cls_prediction /= len(self.list_of_parameters)
 
             print('Prediction done, transferring to CPU if needed')
             prediction = prediction.to('cpu')
